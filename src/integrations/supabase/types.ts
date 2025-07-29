@@ -14,7 +14,280 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      crops: {
+        Row: {
+          growth_stage: number | null
+          id: string
+          max_growth_stage: number | null
+          mutations: string[] | null
+          planted_at: string | null
+          player_id: string | null
+          ready_to_harvest: boolean | null
+          seed_id: string | null
+          watered: boolean | null
+          x_position: number
+          y_position: number
+        }
+        Insert: {
+          growth_stage?: number | null
+          id?: string
+          max_growth_stage?: number | null
+          mutations?: string[] | null
+          planted_at?: string | null
+          player_id?: string | null
+          ready_to_harvest?: boolean | null
+          seed_id?: string | null
+          watered?: boolean | null
+          x_position: number
+          y_position: number
+        }
+        Update: {
+          growth_stage?: number | null
+          id?: string
+          max_growth_stage?: number | null
+          mutations?: string[] | null
+          planted_at?: string | null
+          player_id?: string | null
+          ready_to_harvest?: boolean | null
+          seed_id?: string | null
+          watered?: boolean | null
+          x_position?: number
+          y_position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crops_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crops_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_rooms: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          player_count: number | null
+          room_code: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          player_count?: number | null
+          room_code: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          player_count?: number | null
+          room_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_rooms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_inventories: {
+        Row: {
+          id: string
+          player_id: string | null
+          quantity: number | null
+          seed_id: string | null
+        }
+        Insert: {
+          id?: string
+          player_id?: string | null
+          quantity?: number | null
+          seed_id?: string | null
+        }
+        Update: {
+          id?: string
+          player_id?: string | null
+          quantity?: number | null
+          seed_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_inventories_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_inventories_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          level: number | null
+          money: number | null
+          room_id: string | null
+          updated_at: string | null
+          username: string
+          xp: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          level?: number | null
+          money?: number | null
+          room_id?: string | null
+          updated_at?: string | null
+          username: string
+          xp?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          level?: number | null
+          money?: number | null
+          room_id?: string | null
+          updated_at?: string | null
+          username?: string
+          xp?: number | null
+        }
+        Relationships: []
+      }
+      seeds: {
+        Row: {
+          cost_robux: number | null
+          cost_sheckles: number
+          description: string | null
+          growth_time: number
+          id: string
+          max_stock: number | null
+          min_stock: number | null
+          multi_harvest: boolean | null
+          name: string
+          obtainable: boolean | null
+          rarity: string
+          sell_price: number
+          stock: number | null
+        }
+        Insert: {
+          cost_robux?: number | null
+          cost_sheckles: number
+          description?: string | null
+          growth_time?: number
+          id?: string
+          max_stock?: number | null
+          min_stock?: number | null
+          multi_harvest?: boolean | null
+          name: string
+          obtainable?: boolean | null
+          rarity: string
+          sell_price: number
+          stock?: number | null
+        }
+        Update: {
+          cost_robux?: number | null
+          cost_sheckles?: number
+          description?: string | null
+          growth_time?: number
+          id?: string
+          max_stock?: number | null
+          min_stock?: number | null
+          multi_harvest?: boolean | null
+          name?: string
+          obtainable?: boolean | null
+          rarity?: string
+          sell_price?: number
+          stock?: number | null
+        }
+        Relationships: []
+      }
+      shop_stock: {
+        Row: {
+          current_stock: number | null
+          id: string
+          last_restock: string | null
+          next_restock: string | null
+          seed_id: string | null
+        }
+        Insert: {
+          current_stock?: number | null
+          id?: string
+          last_restock?: string | null
+          next_restock?: string | null
+          seed_id?: string | null
+        }
+        Update: {
+          current_stock?: number | null
+          id?: string
+          last_restock?: string | null
+          next_restock?: string | null
+          seed_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_stock_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weather_events: {
+        Row: {
+          duration: number | null
+          id: string
+          is_active: boolean | null
+          scope: string | null
+          started_at: string | null
+          triggered_by_admin: boolean | null
+          weather_type: string
+        }
+        Insert: {
+          duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          scope?: string | null
+          started_at?: string | null
+          triggered_by_admin?: boolean | null
+          weather_type: string
+        }
+        Update: {
+          duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          scope?: string | null
+          started_at?: string | null
+          triggered_by_admin?: boolean | null
+          weather_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
