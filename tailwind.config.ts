@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -61,7 +62,36 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Game rarity colors
+				common: 'hsl(var(--common))',
+				uncommon: 'hsl(var(--uncommon))',
+				rare: 'hsl(var(--rare))',
+				legendary: 'hsl(var(--legendary))',
+				mythical: 'hsl(var(--mythical))',
+				divine: 'hsl(var(--divine))',
+				prismatic: 'hsl(var(--prismatic))',
+				// Weather colors
+				rain: 'hsl(var(--rain))',
+				thunder: 'hsl(var(--thunder))',
+				frost: 'hsl(var(--frost))',
+				'blood-moon': 'hsl(var(--blood-moon))',
+				tornado: 'hsl(var(--tornado))',
+				sandstorm: 'hsl(var(--sandstorm))'
+			},
+			backgroundImage: {
+				'gradient-farm': 'var(--gradient-farm)',
+				'gradient-rare': 'var(--gradient-rare)',
+				'gradient-divine': 'var(--gradient-divine)',
+				'gradient-weather': 'var(--gradient-weather)'
+			},
+			boxShadow: {
+				'farm': 'var(--shadow-farm)',
+				'rare': 'var(--shadow-rare)',
+				'glow': 'var(--shadow-glow)'
+			},
+			transitionTimingFunction: {
+				'farm': 'var(--transition-farm)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
