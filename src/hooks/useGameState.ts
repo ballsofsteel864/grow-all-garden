@@ -147,18 +147,30 @@ export const useGameState = () => {
       if (stockError) throw stockError;
 
       // Add to inventory
-      const { error: inventoryError } = await supabase
+      const { data: existingItem } = await supabase
         .from('player_inventories')
-        .upsert({
-          player_id: player.id,
-          seed_id: seedId,
-          quantity: 1
-        }, {
-          onConflict: 'player_id,seed_id',
-          ignoreDuplicates: false
-        });
+        .select('quantity')
+        .eq('player_id', player.id)
+        .eq('seed_id', seedId)
+        .single();
 
-      if (inventoryError) throw inventoryError;
+      if (existingItem) {
+        const { error: inventoryError } = await supabase
+          .from('player_inventories')
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq('player_id', player.id)
+          .eq('seed_id', seedId);
+        if (inventoryError) throw inventoryError;
+      } else {
+        const { error: inventoryError } = await supabase
+          .from('player_inventories')
+          .insert({
+            player_id: player.id,
+            seed_id: seedId,
+            quantity: 1
+          });
+        if (inventoryError) throw inventoryError;
+      }
 
       // Update local state
       setPlayer(prev => prev ? { ...prev, money: prev.money - cost } : null);
