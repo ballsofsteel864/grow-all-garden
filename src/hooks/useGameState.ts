@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Player, Seed, Crop, WeatherEvent } from '@/lib/gameData';
@@ -13,6 +13,124 @@ export const useGameState = () => {
   const [shopStock, setShopStock] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Reset player money to 100
+  const resetPlayerMoney = async () => {
+    if (!player) return false;
+    
+    try {
+      await supabase.rpc('reset_player_money', { player_id_param: player.id });
+      setPlayer(prev => prev ? { ...prev, money: 100 } : null);
+      
+      toast({
+        title: "Money Reset!",
+        description: "Your money has been reset to 100 sheckles!",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error resetting money:', error);
+      toast({
+        title: "Reset Failed",
+        description: "Failed to reset money. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  // Harvest crop
+  const harvestCrop = async (cropId: string) => {
+    if (!player) return false;
+
+    try {
+      const { data: crop, error: cropError } = await supabase
+        .from('crops')
+        .select(`
+          *,
+          seeds (sell_price, multi_harvest)
+        `)
+        .eq('id', cropId)
+        .single();
+
+      if (cropError || !crop) throw cropError;
+
+      if (!crop.ready_to_harvest) {
+        toast({
+          title: "Not Ready",
+          description: "This crop is not ready to harvest yet!",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Calculate sell price with mutations
+      const basePrice = crop.seeds?.sell_price || 10;
+      const { data: finalPrice } = await supabase
+        .rpc('calculate_mutation_price', { 
+          base_price: basePrice, 
+          mutations: crop.mutations || [] 
+        });
+
+      const sellPrice = finalPrice || basePrice;
+
+      // Update player money
+      const { error: moneyError } = await supabase
+        .from('players')
+        .update({ money: player.money + sellPrice })
+        .eq('id', player.id);
+
+      if (moneyError) throw moneyError;
+
+      // Handle multi-harvest vs single harvest
+      if (crop.seeds?.multi_harvest && crop.harvest_remaining > 1) {
+        // Multi-harvest: reduce harvest count
+        const { error: updateError } = await supabase
+          .from('crops')
+          .update({ 
+            harvest_remaining: crop.harvest_remaining - 1,
+            last_harvest_at: new Date().toISOString(),
+            ready_to_harvest: false,
+            growth_stage: Math.max(0, crop.growth_stage - 1)
+          })
+          .eq('id', cropId);
+
+        if (updateError) throw updateError;
+      } else {
+        // Single harvest: remove crop
+        const { error: deleteError } = await supabase
+          .from('crops')
+          .delete()
+          .eq('id', cropId);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Update local state
+      setPlayer(prev => prev ? { ...prev, money: prev.money + sellPrice } : null);
+
+      const mutationText = crop.mutations && crop.mutations.length > 0 
+        ? ` (${crop.mutations.join(', ')})` 
+        : '';
+      
+      toast({
+        title: "Harvest Successful!",
+        description: `Sold for ${sellPrice} sheckles${mutationText}`,
+      });
+
+      // Reload data
+      await loadCrops(player.id);
+      return true;
+    } catch (error) {
+      console.error('Error harvesting crop:', error);
+      toast({
+        title: "Harvest Failed",
+        description: "Failed to harvest crop. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
 
   // Initialize player
   const initializePlayer = async (username: string) => {
@@ -65,7 +183,7 @@ export const useGameState = () => {
     }
   };
 
-  // Load shop stock with rarity-based filtering
+  // Load shop stock with rarity-based filtering and restock countdown
   const loadShopStock = async () => {
     try {
       const { data, error } = await supabase
@@ -77,22 +195,15 @@ export const useGameState = () => {
 
       if (error) throw error;
       
-      // Filter stock based on rarity probability
-      const filteredStock = (data || []).filter(item => {
-        if (!item.seeds?.rarity) return true;
-        
-        const rarity = item.seeds.rarity.toLowerCase();
-        const random = Math.random();
-        
-        // Rarity probability system
-        if (rarity === 'divine' || rarity === 'prismatic') return random < 0.05; // 5%
-        if (rarity === 'mythical') return random < 0.15; // 15%
-        if (rarity === 'legendary') return random < 0.35; // 35%
-        if (rarity === 'rare') return random < 0.60; // 60%
-        return true; // Common/Uncommon always available
-      });
+      // Add countdown timer for each item
+      const stockWithCountdown = (data || []).map(item => ({
+        ...item,
+        timeUntilRestock: item.next_restock_at 
+          ? Math.max(0, Math.floor((new Date(item.next_restock_at).getTime() - Date.now()) / 1000))
+          : 0
+      }));
       
-      setShopStock(filteredStock);
+      setShopStock(stockWithCountdown);
     } catch (error) {
       console.error('Error loading shop stock:', error);
     }
@@ -343,6 +454,11 @@ export const useGameState = () => {
           });
 
         if (error) throw error;
+
+        // Trigger weather mutations on existing crops
+        await supabase.rpc('trigger_weather_mutations', { 
+          weather_type_param: weatherType 
+        });
       }
 
       toast({
@@ -537,6 +653,8 @@ export const useGameState = () => {
     createRoom,
     joinRoom,
     loadAllPlayers,
-    loadRoomPlayers
+    loadRoomPlayers,
+    resetPlayerMoney,
+    harvestCrop
   };
 };

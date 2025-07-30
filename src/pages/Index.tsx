@@ -33,7 +33,9 @@ const Index = () => {
     createRoom,
     joinRoom,
     loadAllPlayers,
-    loadRoomPlayers
+    loadRoomPlayers,
+    resetPlayerMoney,
+    harvestCrop
   } = useGameState();
 
   const [showUsernameDialog, setShowUsernameDialog] = useState(false);
@@ -114,6 +116,9 @@ const Index = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          <Button onClick={resetPlayerMoney} variant="outline" size="sm">
+            Reset Money
+          </Button>
           <AdminLogin onAdminLogin={setAdminLoggedIn} isLoggedIn={adminLoggedIn} />
           {(isAdmin || adminLoggedIn) && (
             <Button onClick={() => setShowAdminPanel(true)} variant="outline">
@@ -131,6 +136,7 @@ const Index = () => {
             crops={crops}
             selectedSeedId={selectedSeedId}
             onPlantSeed={handlePlantSeed}
+            onHarvestCrop={harvestCrop}
             gridSize={10}
           />
         </div>

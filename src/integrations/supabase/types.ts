@@ -327,11 +327,11 @@ export type Database = {
         Returns: undefined
       }
       reset_player_money: {
-        Args: { player_username: string }
+        Args: { player_id_param: string } | { player_username: string }
         Returns: undefined
       }
       trigger_weather_mutations: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { weather_type_param: string }
         Returns: undefined
       }
     }
