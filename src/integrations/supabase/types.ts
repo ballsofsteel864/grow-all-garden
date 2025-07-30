@@ -17,7 +17,10 @@ export type Database = {
       crops: {
         Row: {
           growth_stage: number | null
+          harvest_remaining: number | null
           id: string
+          is_fully_grown: boolean | null
+          last_harvest_at: string | null
           max_growth_stage: number | null
           mutations: string[] | null
           planted_at: string | null
@@ -30,7 +33,10 @@ export type Database = {
         }
         Insert: {
           growth_stage?: number | null
+          harvest_remaining?: number | null
           id?: string
+          is_fully_grown?: boolean | null
+          last_harvest_at?: string | null
           max_growth_stage?: number | null
           mutations?: string[] | null
           planted_at?: string | null
@@ -43,7 +49,10 @@ export type Database = {
         }
         Update: {
           growth_stage?: number | null
+          harvest_remaining?: number | null
           id?: string
+          is_fully_grown?: boolean | null
+          last_harvest_at?: string | null
           max_growth_stage?: number | null
           mutations?: string[] | null
           planted_at?: string | null
@@ -231,21 +240,33 @@ export type Database = {
           current_stock: number | null
           id: string
           last_restock: string | null
+          max_stock: number | null
+          min_stock: number | null
           next_restock: string | null
+          next_restock_at: string | null
+          restock_chance: number | null
           seed_id: string | null
         }
         Insert: {
           current_stock?: number | null
           id?: string
           last_restock?: string | null
+          max_stock?: number | null
+          min_stock?: number | null
           next_restock?: string | null
+          next_restock_at?: string | null
+          restock_chance?: number | null
           seed_id?: string | null
         }
         Update: {
           current_stock?: number | null
           id?: string
           last_restock?: string | null
+          max_stock?: number | null
+          min_stock?: number | null
           next_restock?: string | null
+          next_restock_at?: string | null
+          restock_chance?: number | null
           seed_id?: string | null
         }
         Relationships: [
