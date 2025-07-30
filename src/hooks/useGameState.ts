@@ -65,7 +65,7 @@ export const useGameState = () => {
     }
   };
 
-  // Load shop stock
+  // Load shop stock with rarity-based filtering
   const loadShopStock = async () => {
     try {
       const { data, error } = await supabase
@@ -76,7 +76,23 @@ export const useGameState = () => {
         `);
 
       if (error) throw error;
-      setShopStock(data || []);
+      
+      // Filter stock based on rarity probability
+      const filteredStock = (data || []).filter(item => {
+        if (!item.seeds?.rarity) return true;
+        
+        const rarity = item.seeds.rarity.toLowerCase();
+        const random = Math.random();
+        
+        // Rarity probability system
+        if (rarity === 'divine' || rarity === 'prismatic') return random < 0.05; // 5%
+        if (rarity === 'mythical') return random < 0.15; // 15%
+        if (rarity === 'legendary') return random < 0.35; // 35%
+        if (rarity === 'rare') return random < 0.60; // 60%
+        return true; // Common/Uncommon always available
+      });
+      
+      setShopStock(filteredStock);
     } catch (error) {
       console.error('Error loading shop stock:', error);
     }
@@ -304,7 +320,8 @@ export const useGameState = () => {
 
   // Trigger weather (admin only)
   const triggerWeather = async (weatherType: string, isGlobal: boolean = true) => {
-    if (!isAdmin) return false;
+    // Allow both database admin and UI admin login
+    if (!isAdmin && !player?.is_admin) return false;
 
     try {
       // End current weather
@@ -313,18 +330,20 @@ export const useGameState = () => {
         .update({ is_active: false })
         .eq('is_active', true);
 
-      // Start new weather
-      const { error } = await supabase
-        .from('weather_events')
-        .insert({
-          weather_type: weatherType,
-          duration: 300, // 5 minutes
-          is_active: true,
-          triggered_by_admin: true,
-          scope: isGlobal ? 'global' : 'local'
-        });
+      // Start new weather (skip if clearing)
+      if (weatherType !== "Clear") {
+        const { error } = await supabase
+          .from('weather_events')
+          .insert({
+            weather_type: weatherType,
+            duration: 300, // 5 minutes
+            is_active: true,
+            triggered_by_admin: true,
+            scope: isGlobal ? 'global' : 'local'
+          });
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       toast({
         title: "Weather Changed!",
@@ -400,6 +419,106 @@ export const useGameState = () => {
     }
   }, []);
 
+  // Multiplayer functions
+  const createRoom = async () => {
+    if (!player) return '';
+    
+    try {
+      const roomCode = Math.random().toString(36).substr(2, 9).toUpperCase();
+      
+      const { error: roomError } = await supabase
+        .from('game_rooms')
+        .insert({
+          room_code: roomCode,
+          created_by: player.id
+        });
+      
+      if (roomError) throw roomError;
+      
+      // Join the room
+      const { error: playerError } = await supabase
+        .from('players')
+        .update({ room_id: roomCode })
+        .eq('id', player.id);
+        
+      if (playerError) throw playerError;
+      
+      setPlayer(prev => prev ? { ...prev, room_id: roomCode } : null);
+      
+      toast({
+        title: "Room Created!",
+        description: `Room ${roomCode} created and joined successfully!`,
+      });
+      
+      return roomCode;
+    } catch (error) {
+      console.error('Error creating room:', error);
+      throw error;
+    }
+  };
+
+  const joinRoom = async (roomCode: string) => {
+    if (!player) return false;
+    
+    try {
+      // Check if room exists
+      const { data: room } = await supabase
+        .from('game_rooms')
+        .select('*')
+        .eq('room_code', roomCode)
+        .eq('is_active', true)
+        .single();
+        
+      if (!room) return false;
+      
+      // Join the room
+      const { error } = await supabase
+        .from('players')
+        .update({ room_id: roomCode })
+        .eq('id', player.id);
+        
+      if (error) throw error;
+      
+      setPlayer(prev => prev ? { ...prev, room_id: roomCode } : null);
+      return true;
+    } catch (error) {
+      console.error('Error joining room:', error);
+      return false;
+    }
+  };
+
+  // Load players for admin panel
+  const loadAllPlayers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error loading players:', error);
+      return [];
+    }
+  };
+
+  // Load room players
+  const loadRoomPlayers = async (roomId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .eq('room_id', roomId);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error loading room players:', error);
+      return [];
+    }
+  };
+
   return {
     player,
     seeds,
@@ -414,6 +533,10 @@ export const useGameState = () => {
     plantSeed,
     triggerWeather,
     loadInventory,
-    loadCrops
+    loadCrops,
+    createRoom,
+    joinRoom,
+    loadAllPlayers,
+    loadRoomPlayers
   };
 };

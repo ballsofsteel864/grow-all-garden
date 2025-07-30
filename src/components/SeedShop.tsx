@@ -20,13 +20,20 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
   const { toast } = useToast();
   const [timeLeft, setTimeLeft] = useState<string>("");
 
-  // Update countdown timer
+  // Update countdown timer from shop stock
   useEffect(() => {
-    if (!restockTime) return;
+    if (!shopStock || shopStock.length === 0) return;
 
     const interval = setInterval(() => {
+      // Get the next restock time from any shop stock item (they should all be the same)
+      const nextRestock = shopStock[0]?.next_restock;
+      if (!nextRestock) {
+        setTimeLeft("Loading...");
+        return;
+      }
+
       const now = new Date().getTime();
-      const target = restockTime.getTime();
+      const target = new Date(nextRestock).getTime();
       const difference = target - now;
 
       if (difference > 0) {
@@ -39,7 +46,7 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [restockTime]);
+  }, [shopStock]);
 
   const handleBuySeed = async (seed: Seed, stock: number) => {
     if (stock <= 0) {

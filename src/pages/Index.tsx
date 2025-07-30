@@ -29,13 +29,19 @@ const Index = () => {
     plantSeed,
     triggerWeather,
     loadInventory,
-    loadCrops
+    loadCrops,
+    createRoom,
+    joinRoom,
+    loadAllPlayers,
+    loadRoomPlayers
   } = useGameState();
 
   const [showUsernameDialog, setShowUsernameDialog] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [selectedSeedId, setSelectedSeedId] = useState<string | null>(null);
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+  const [roomPlayers, setRoomPlayers] = useState<any[]>([]);
+  const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,6 +50,23 @@ const Index = () => {
       setShowUsernameDialog(true);
     }
   }, [player]);
+
+  // Load players when admin panel is opened or player has room
+  useEffect(() => {
+    const loadPlayers = async () => {
+      if (isAdmin || adminLoggedIn) {
+        const players = await loadAllPlayers();
+        setAllPlayers(players);
+      }
+      
+      if (player?.room_id) {
+        const players = await loadRoomPlayers(player.room_id);
+        setRoomPlayers(players);
+      }
+    };
+    
+    loadPlayers();
+  }, [player, isAdmin, adminLoggedIn, loadAllPlayers, loadRoomPlayers]);
 
   const handleUsernameSet = async (username: string) => {
     await initializePlayer(username);
@@ -134,15 +157,15 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <WeatherControl
               currentWeather={currentWeather}
-              onTriggerWeather={triggerWeather}
+              onTriggerWeather={(weatherType) => triggerWeather(weatherType, true)}
               isAdmin={isAdmin || adminLoggedIn}
             />
             
             <Multiplayer
               currentRoom={player?.room_id || null}
-              onCreateRoom={async () => Math.random().toString(36).substr(2, 9)}
-              onJoinRoom={async () => true}
-              players={[]}
+              onCreateRoom={createRoom}
+              onJoinRoom={joinRoom}
+              players={roomPlayers}
             />
           </div>
         </div>
@@ -153,7 +176,7 @@ const Index = () => {
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
         onTriggerWeather={triggerWeather}
-        players={[]}
+        players={allPlayers}
       />
     </div>
   );
