@@ -134,10 +134,12 @@ const Index = () => {
         <div className="lg:col-span-2 space-y-6">
           <FarmGrid
             crops={crops}
+            seeds={seeds}
+            inventory={inventory}
             selectedSeedId={selectedSeedId}
-            onPlantSeed={handlePlantSeed}
+            onPlantSeed={plantSeed}
+            onSelectSeed={setSelectedSeedId}
             onHarvestCrop={harvestCrop}
-            gridSize={10}
           />
         </div>
 

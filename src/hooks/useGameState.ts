@@ -431,27 +431,25 @@ export const useGameState = () => {
 
   // Trigger weather (admin only)
   const triggerWeather = async (weatherType: string, isGlobal: boolean = true) => {
-    // Allow both database admin and UI admin login
-    if (!isAdmin && !player?.is_admin) return false;
+    if (!isAdmin && !player?.is_admin) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can control weather",
+        variant: "destructive"
+      });
+      return false;
+    }
 
     try {
-      console.log('Triggering weather:', weatherType);
-      
-      // End current weather
-      const { error: endError } = await supabase
+      // End current weather first
+      await supabase
         .from('weather_events')
         .update({ is_active: false })
         .eq('is_active', true);
 
-      if (endError) {
-        console.error('Error ending current weather:', endError);
-        throw endError;
-      }
-
       // Start new weather (skip if clearing)
       if (weatherType !== "Clear") {
-        console.log('Inserting new weather event...');
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('weather_events')
           .insert({
             weather_type: weatherType,
@@ -459,35 +457,21 @@ export const useGameState = () => {
             is_active: true,
             triggered_by_admin: true,
             scope: isGlobal ? 'global' : 'local'
-          })
-          .select()
-          .single();
+          });
 
-        if (error) {
-          console.error('Error inserting weather:', error);
-          throw error;
-        }
-
-        console.log('Weather event created:', data);
+        if (error) throw error;
 
         // Trigger weather mutations on existing crops
-        console.log('Triggering mutations...');
-        const { error: mutationError } = await supabase.rpc('trigger_weather_mutations', { 
+        await supabase.rpc('trigger_weather_mutations', { 
           weather_type_param: weatherType 
         });
-
-        if (mutationError) {
-          console.error('Error triggering mutations:', mutationError);
-        }
       }
 
       toast({
         title: "Weather Changed!",
-        description: `${weatherType} weather has started!`,
+        description: weatherType === "Clear" ? "Weather cleared!" : `${weatherType} weather has started!`,
       });
 
-      // Force reload weather
-      console.log('Reloading weather...');
       await loadCurrentWeather();
       return true;
     } catch (error) {
