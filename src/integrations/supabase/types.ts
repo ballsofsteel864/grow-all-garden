@@ -314,8 +314,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_crop_growth: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      calculate_mutation_price: {
+        Args: { base_price: number; mutations: string[] }
+        Returns: number
+      }
       decrement_stock: {
         Args: { seed_id: string }
+        Returns: undefined
+      }
+      reset_player_money: {
+        Args: { player_username: string }
+        Returns: undefined
+      }
+      trigger_weather_mutations: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
     }
