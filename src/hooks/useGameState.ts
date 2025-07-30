@@ -431,7 +431,7 @@ export const useGameState = () => {
 
   // Trigger weather (admin only)
   const triggerWeather = async (weatherType: string, isGlobal: boolean = true) => {
-    if (!isAdmin && !player?.is_admin) {
+    if (!player?.is_admin) {
       toast({
         title: "Access Denied",
         description: "Only admins can control weather",
@@ -551,7 +551,7 @@ export const useGameState = () => {
     if (!player) return '';
     
     try {
-      const roomCode = Math.random().toString(36).substr(2, 9).toUpperCase();
+      const roomCode = Math.random().toString(36).substring(2, 11).toUpperCase();
       
       const { error: roomError } = await supabase
         .from('game_rooms')

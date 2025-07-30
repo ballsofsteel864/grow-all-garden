@@ -71,10 +71,10 @@ export const CropInfo = ({ crop, onHarvest, onClose }: CropInfoProps) => {
           </span>
         </div>
 
-        {crop.mutations && crop.mutations.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            <span className="text-sm">Mutations:</span>
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4" />
+          <span className="text-sm">Mutations:</span>
+          {crop.mutations && crop.mutations.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {crop.mutations.map((mutation, index) => (
                 <Badge key={index} variant="outline" className="text-xs">
@@ -82,8 +82,10 @@ export const CropInfo = ({ crop, onHarvest, onClose }: CropInfoProps) => {
                 </Badge>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <span className="text-muted-foreground text-xs">None</span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <Coins className="h-4 w-4" />

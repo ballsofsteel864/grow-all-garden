@@ -206,7 +206,7 @@ export const Multiplayer = ({ currentRoom, onCreateRoom, onJoinRoom, players, pl
                   onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
                   placeholder="Enter room code..."
                   className="flex-1 font-mono"
-                  maxLength={6}
+                  maxLength={20}
                 />
                 <Button 
                   onClick={handleJoinRoom}
