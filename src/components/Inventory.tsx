@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RARITY_COLORS } from "@/lib/gameData";
-import { Package } from "lucide-react";
+import { Package, Sprout, Clock } from "lucide-react";
 
 interface InventoryProps {
   inventory: any[];
@@ -45,22 +45,55 @@ export const Inventory = ({ inventory, onSelectSeed, selectedSeedId }: Inventory
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
+                        <Sprout className="w-4 h-4 text-green-600" />
                         <div>
                           <h4 className="font-medium">{item.seeds?.name}</h4>
-                          <Badge 
-                            className={`${RARITY_COLORS[item.seeds?.rarity as keyof typeof RARITY_COLORS]} text-white text-xs`}
-                            variant="secondary"
-                          >
-                            {item.seeds?.rarity}
-                          </Badge>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge 
+                              className={`${RARITY_COLORS[item.seeds?.rarity as keyof typeof RARITY_COLORS]} text-white text-xs`}
+                              variant="secondary"
+                            >
+                              {item.seeds?.rarity}
+                            </Badge>
+                            {item.seeds?.multi_harvest && (
+                              <Badge variant="outline" className="text-xs">
+                                Multi-Harvest
+                              </Badge>
+                            )}
+                          </div>
+                          {item.seeds?.growth_time && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              <span>{Math.floor(item.seeds.growth_time / 60)}min grow</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="text-lg font-bold text-primary">
-                          {item.quantity}
+                          ×{item.quantity}
                         </span>
+                        {item.seeds?.sell_price && (
+                          <p className="text-xs text-muted-foreground">
+                            Sells for ${item.seeds.sell_price}
+                          </p>
+                        )}
                       </div>
                     </div>
+                    
+                    {item.seeds?.description && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {item.seeds.description}
+                      </p>
+                    )}
+                    
+                    {selectedSeedId === item.seed_id && (
+                      <div className="mt-2 pt-2 border-t">
+                        <p className="text-xs text-primary font-medium">
+                          Click on an empty farm plot to plant this seed
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))

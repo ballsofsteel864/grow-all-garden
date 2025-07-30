@@ -435,15 +435,23 @@ export const useGameState = () => {
     if (!isAdmin && !player?.is_admin) return false;
 
     try {
+      console.log('Triggering weather:', weatherType);
+      
       // End current weather
-      await supabase
+      const { error: endError } = await supabase
         .from('weather_events')
         .update({ is_active: false })
         .eq('is_active', true);
 
+      if (endError) {
+        console.error('Error ending current weather:', endError);
+        throw endError;
+      }
+
       // Start new weather (skip if clearing)
       if (weatherType !== "Clear") {
-        const { error } = await supabase
+        console.log('Inserting new weather event...');
+        const { data, error } = await supabase
           .from('weather_events')
           .insert({
             weather_type: weatherType,
@@ -451,14 +459,26 @@ export const useGameState = () => {
             is_active: true,
             triggered_by_admin: true,
             scope: isGlobal ? 'global' : 'local'
-          });
+          })
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error inserting weather:', error);
+          throw error;
+        }
+
+        console.log('Weather event created:', data);
 
         // Trigger weather mutations on existing crops
-        await supabase.rpc('trigger_weather_mutations', { 
+        console.log('Triggering mutations...');
+        const { error: mutationError } = await supabase.rpc('trigger_weather_mutations', { 
           weather_type_param: weatherType 
         });
+
+        if (mutationError) {
+          console.error('Error triggering mutations:', mutationError);
+        }
       }
 
       toast({
@@ -466,10 +486,17 @@ export const useGameState = () => {
         description: `${weatherType} weather has started!`,
       });
 
+      // Force reload weather
+      console.log('Reloading weather...');
       await loadCurrentWeather();
       return true;
     } catch (error) {
       console.error('Error triggering weather:', error);
+      toast({
+        title: "Error",
+        description: "Failed to trigger weather event",
+        variant: "destructive"
+      });
       return false;
     }
   };

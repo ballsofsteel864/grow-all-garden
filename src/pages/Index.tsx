@@ -172,6 +172,7 @@ const Index = () => {
               onCreateRoom={createRoom}
               onJoinRoom={joinRoom}
               players={roomPlayers}
+              player={player}
             />
           </div>
         </div>
