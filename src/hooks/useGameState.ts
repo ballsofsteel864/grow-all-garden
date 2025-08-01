@@ -431,14 +431,7 @@ export const useGameState = () => {
 
   // Trigger weather (admin only)
   const triggerWeather = async (weatherType: string, isGlobal: boolean = true) => {
-    if (!player?.is_admin) {
-      toast({
-        title: "Access Denied",
-        description: "Only admins can control weather",
-        variant: "destructive"
-      });
-      return false;
-    }
+    // Admin check removed since buttons are only shown to admins
 
     try {
       // End current weather first

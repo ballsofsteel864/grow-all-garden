@@ -13,14 +13,19 @@ interface CropInfoProps {
 
 export const CropInfo = ({ crop, onHarvest, onClose }: CropInfoProps) => {
   const calculateTimeRemaining = () => {
-    if (!crop.planted_at || crop.ready_to_harvest) return 0;
+    if (!crop.planted_at) return 0;
     
     const plantedTime = new Date(crop.planted_at).getTime();
     const growthTimeMs = (crop as any).seeds?.growth_time * 1000 || 300000;
     const readyTime = plantedTime + growthTimeMs;
     const now = Date.now();
     
-    return Math.max(0, Math.ceil((readyTime - now) / 1000));
+    const timeLeft = Math.max(0, Math.ceil((readyTime - now) / 1000));
+    
+    // Update crop readiness based on actual time calculation
+    const isActuallyReady = timeLeft === 0 && crop.growth_stage >= crop.max_growth_stage;
+    
+    return timeLeft;
   };
 
   const calculatePrice = () => {
@@ -42,6 +47,9 @@ export const CropInfo = ({ crop, onHarvest, onClose }: CropInfoProps) => {
   const timeRemaining = calculateTimeRemaining();
   const estimatedPrice = calculatePrice();
   const harvestsRemaining = (crop as any).harvest_remaining || 10;
+  
+  // Calculate if crop is actually ready to harvest based on real-time
+  const isActuallyReady = timeRemaining === 0 && crop.growth_stage >= crop.max_growth_stage;
 
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return "Ready!";
@@ -100,10 +108,10 @@ export const CropInfo = ({ crop, onHarvest, onClose }: CropInfoProps) => {
         <div className="flex gap-2 pt-2">
           <Button 
             onClick={() => onHarvest(crop.id)}
-            disabled={!crop.ready_to_harvest}
+            disabled={!isActuallyReady}
             className="flex-1"
           >
-            {crop.ready_to_harvest ? 'Harvest' : 'Not Ready'}
+            {isActuallyReady ? 'Harvest' : 'Not Ready'}
           </Button>
           <Button variant="outline" onClick={onClose}>
             Close
