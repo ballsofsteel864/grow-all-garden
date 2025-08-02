@@ -48,14 +48,21 @@ export const useGameState = () => {
         .from('crops')
         .select(`
           *,
-          seeds (sell_price, multi_harvest)
+          seeds (sell_price, multi_harvest, growth_time)
         `)
         .eq('id', cropId)
         .single();
 
       if (cropError || !crop) throw cropError;
 
-      if (!crop.ready_to_harvest) {
+      // Check if crop is actually ready based on real-time calculation
+      const plantedTime = new Date(crop.planted_at).getTime();
+      const growthTimeMs = (crop as any).seeds?.growth_time * 1000 || 300000;
+      const readyTime = plantedTime + growthTimeMs;
+      const now = Date.now();
+      const isActuallyReady = now >= readyTime && crop.growth_stage >= crop.max_growth_stage;
+
+      if (!isActuallyReady) {
         toast({
           title: "Not Ready",
           description: "This crop is not ready to harvest yet!",
@@ -84,14 +91,15 @@ export const useGameState = () => {
 
       // Handle multi-harvest vs single harvest
       if (crop.seeds?.multi_harvest && crop.harvest_remaining > 1) {
-        // Multi-harvest: reduce harvest count
+        // Multi-harvest: reduce harvest count and reset growth
         const { error: updateError } = await supabase
           .from('crops')
           .update({ 
             harvest_remaining: crop.harvest_remaining - 1,
             last_harvest_at: new Date().toISOString(),
             ready_to_harvest: false,
-            growth_stage: Math.max(0, crop.growth_stage - 1)
+            growth_stage: 1,
+            planted_at: new Date().toISOString()
           })
           .eq('id', cropId);
 
@@ -577,6 +585,35 @@ export const useGameState = () => {
     }
   };
 
+  const leaveRoom = async () => {
+    if (!player) return false;
+    
+    try {
+      const { error } = await supabase.rpc('leave_room', { 
+        player_id_param: player.id 
+      });
+      
+      if (error) throw error;
+      
+      setPlayer(prev => prev ? { ...prev, room_id: null } : null);
+      
+      toast({
+        title: "Left Room",
+        description: "You have left the room successfully!",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to leave room",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const joinRoom = async (roomCode: string) => {
     if (!player) return false;
     
@@ -656,6 +693,7 @@ export const useGameState = () => {
     loadCrops,
     createRoom,
     joinRoom,
+    leaveRoom,
     loadAllPlayers,
     loadRoomPlayers,
     resetPlayerMoney,

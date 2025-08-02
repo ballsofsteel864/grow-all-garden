@@ -75,11 +75,15 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
     return stockItem?.current_stock || 0;
   };
 
-  const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Legendary', 'Mythical', 'Divine', 'Prismatic'];
+  const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Ultra Rare'];
   const sortedSeeds = [...seeds].sort((a, b) => {
     const aIndex = rarityOrder.indexOf(a.rarity);
     const bIndex = rarityOrder.indexOf(b.rarity);
-    return aIndex - bIndex;
+    if (aIndex !== bIndex) {
+      return aIndex - bIndex;
+    }
+    // If same rarity, sort by price (ascending)
+    return a.cost_sheckles - b.cost_sheckles;
   });
 
   return (

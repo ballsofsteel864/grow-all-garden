@@ -32,6 +32,7 @@ const Index = () => {
     loadCrops,
     createRoom,
     joinRoom,
+    leaveRoom,
     loadAllPlayers,
     loadRoomPlayers,
     resetPlayerMoney,
@@ -173,6 +174,7 @@ const Index = () => {
               currentRoom={player?.room_id || null}
               onCreateRoom={createRoom}
               onJoinRoom={joinRoom}
+              onLeaveRoom={leaveRoom}
               players={roomPlayers}
               player={player}
             />

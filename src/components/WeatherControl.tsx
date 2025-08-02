@@ -31,7 +31,7 @@ export const WeatherControl = ({ currentWeather, onTriggerWeather, isAdmin }: We
         const seconds = Math.floor((difference % (1000 * 60)) / 1000);
         setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
       } else {
-        setTimeLeft("0 seconds left");
+        setTimeLeft("");
       }
     }, 1000);
 
@@ -96,7 +96,7 @@ export const WeatherControl = ({ currentWeather, onTriggerWeather, isAdmin }: We
         {/* Current Weather */}
         <div>
           <h3 className="font-semibold mb-2">Current Weather</h3>
-          {currentWeather ? (
+          {currentWeather && timeLeft ? (
             <div className="space-y-2">
               <Badge 
                 className={`${getWeatherColor(currentWeather.weather_type)} flex items-center gap-1 text-sm`}

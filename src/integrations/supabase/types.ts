@@ -326,6 +326,10 @@ export type Database = {
         Args: { seed_id: string }
         Returns: undefined
       }
+      leave_room: {
+        Args: { player_id_param: string }
+        Returns: undefined
+      }
       reset_player_money: {
         Args: { player_id_param: string } | { player_username: string }
         Returns: undefined

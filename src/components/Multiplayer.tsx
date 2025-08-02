@@ -12,11 +12,12 @@ interface MultiplayerProps {
   currentRoom: string | null;
   onCreateRoom: () => Promise<string>;
   onJoinRoom: (roomId: string) => Promise<boolean>;
+  onLeaveRoom: () => Promise<boolean>;
   players: any[];
   player: any;
 }
 
-export const Multiplayer = ({ currentRoom, onCreateRoom, onJoinRoom, players, player }: MultiplayerProps) => {
+export const Multiplayer = ({ currentRoom, onCreateRoom, onJoinRoom, onLeaveRoom, players, player }: MultiplayerProps) => {
   const [joinRoomId, setJoinRoomId] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -79,11 +80,13 @@ export const Multiplayer = ({ currentRoom, onCreateRoom, onJoinRoom, players, pl
 
   const handleLeaveRoom = async () => {
     if (currentRoom) {
-      await onJoinRoom(""); // Leave room by joining empty room
-      toast({
-        title: "Left Room",
-        description: "You've left the multiplayer room",
-      });
+      const success = await onLeaveRoom();
+      if (success) {
+        toast({
+          title: "Left Room",
+          description: "You've left the multiplayer room",
+        });
+      }
     }
   };
 
