@@ -18,7 +18,10 @@ export const WeatherControl = ({ currentWeather, onTriggerWeather, isAdmin }: We
 
   // Update countdown timer for current weather
   useEffect(() => {
-    if (!currentWeather) return;
+    if (!currentWeather) {
+      setTimeLeft("");
+      return;
+    }
 
     const interval = setInterval(() => {
       const startTime = new Date(currentWeather.started_at).getTime();
@@ -32,6 +35,7 @@ export const WeatherControl = ({ currentWeather, onTriggerWeather, isAdmin }: We
         setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
       } else {
         setTimeLeft("");
+        // Weather has ended
       }
     }, 1000);
 

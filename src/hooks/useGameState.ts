@@ -191,7 +191,7 @@ export const useGameState = () => {
     }
   };
 
-  // Load shop stock with rarity-based filtering and restock countdown
+  // Load shop stock with automatic restocking
   const loadShopStock = async () => {
     try {
       const { data, error } = await supabase
@@ -203,15 +203,18 @@ export const useGameState = () => {
 
       if (error) throw error;
       
-      // Add countdown timer for each item
-      const stockWithCountdown = (data || []).map(item => ({
-        ...item,
-        timeUntilRestock: item.next_restock_at 
-          ? Math.max(0, Math.floor((new Date(item.next_restock_at).getTime() - Date.now()) / 1000))
-          : 0
-      }));
+      // Run restock function to update any stocks that need restocking
+      await supabase.rpc('handle_shop_restock');
       
-      setShopStock(stockWithCountdown);
+      // Reload after potential restock
+      const { data: updatedData } = await supabase
+        .from('shop_stock')
+        .select(`
+          *,
+          seeds (*)
+        `);
+        
+      setShopStock(updatedData || []);
     } catch (error) {
       console.error('Error loading shop stock:', error);
     }
@@ -252,75 +255,51 @@ export const useGameState = () => {
     }
   };
 
-  // Buy seed from shop
+  // Buy seed from shop using safe transaction
   const buySeed = async (seedId: string, cost: number) => {
-    if (!player) return false;
-
-    if (player.money < cost) {
-      toast({
-        title: "Insufficient Funds",
-        description: "You don't have enough sheckles!",
-        variant: "destructive"
-      });
+    if (!player || !player.id) {
+      toast({ title: "Error", description: "Player not found", variant: "destructive" });
       return false;
     }
 
     try {
-      // Start transaction-like operations
-      // Update player money
-      const { error: playerError } = await supabase
-        .from('players')
-        .update({ money: player.money - cost })
-        .eq('id', player.id);
-
-      if (playerError) throw playerError;
-
-      // Update shop stock
-      const { error: stockError } = await supabase
-        .rpc('decrement_stock', { seed_id: seedId });
-
-      if (stockError) throw stockError;
-
-      // Add to inventory
-      const { data: existingItem } = await supabase
-        .from('player_inventories')
-        .select('quantity')
-        .eq('player_id', player.id)
-        .eq('seed_id', seedId)
-        .single();
-
-      if (existingItem) {
-        const { error: inventoryError } = await supabase
-          .from('player_inventories')
-          .update({ quantity: existingItem.quantity + 1 })
-          .eq('player_id', player.id)
-          .eq('seed_id', seedId);
-        if (inventoryError) throw inventoryError;
-      } else {
-        const { error: inventoryError } = await supabase
-          .from('player_inventories')
-          .insert({
-            player_id: player.id,
-            seed_id: seedId,
-            quantity: 1
-          });
-        if (inventoryError) throw inventoryError;
-      }
-
-      // Update local state
-      setPlayer(prev => prev ? { ...prev, money: prev.money - cost } : null);
-      
-      toast({
-        title: "Purchase Successful!",
-        description: "Seed purchased and added to inventory",
+      // Use the new safe buy seed function
+      const { data, error } = await supabase.rpc('buy_seed_safe', {
+        player_id_param: player.id,
+        seed_id_param: seedId,
+        cost_param: cost
       });
 
-      // Reload data
+      if (error) throw error;
+
+      const result = data?.[0];
+      if (!result?.success) {
+        toast({ 
+          title: "Purchase failed", 
+          description: result?.message || "Unknown error", 
+          variant: "destructive" 
+        });
+        return false;
+      }
+
+      // Refresh data after successful purchase
       await Promise.all([
         loadInventory(player.id),
         loadShopStock()
       ]);
+      
+      // Update player money in local state
+      const { data: playerData } = await supabase
+        .from('players')
+        .select('money')
+        .eq('id', player.id)
+        .single();
+        
+      if (playerData) {
+        setPlayer(prev => prev ? { ...prev, money: playerData.money } : null);
+      }
 
+      toast({ title: "Purchase successful", description: "Seed added to inventory" });
       return true;
     } catch (error) {
       console.error('Error buying seed:', error);
@@ -676,6 +655,47 @@ export const useGameState = () => {
     }
   };
 
+  // Execute admin commands
+  const executeCommand = async (command: string) => {
+    if (!player || !isAdmin) {
+      toast({ title: "Error", description: "Admin access required", variant: "destructive" });
+      return;
+    }
+
+    const parts = command.trim().split(' ');
+    const action = parts[0];
+
+    try {
+      switch (action) {
+        case '/weather':
+          if (parts.length === 2) {
+            const weatherType = parts[1];
+            if (weatherType === 'clear') {
+              // Clear weather by ending current weather
+              const { error } = await supabase
+                .from('weather_events')
+                .update({ is_active: false })
+                .eq('is_active', true);
+              
+              if (error) throw error;
+              setCurrentWeather(null);
+              toast({ title: "Weather cleared", description: "All weather effects have been cleared" });
+            } else {
+              await triggerWeather(weatherType, true);
+            }
+          }
+          break;
+          
+        default:
+          toast({ title: "Unknown command", description: `Command '${action}' not recognized`, variant: "destructive" });
+          break;
+      }
+    } catch (error) {
+      console.error('Error executing command:', error);
+      toast({ title: "Command failed", description: "Failed to execute command", variant: "destructive" });
+    }
+  };
+
   return {
     player,
     seeds,
@@ -697,6 +717,7 @@ export const useGameState = () => {
     loadAllPlayers,
     loadRoomPlayers,
     resetPlayerMoney,
+    executeCommand,
     harvestCrop
   };
 };

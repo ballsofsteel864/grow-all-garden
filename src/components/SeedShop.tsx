@@ -25,10 +25,10 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
     if (!shopStock || shopStock.length === 0) return;
 
     const interval = setInterval(() => {
-      // Get the next restock time from any shop stock item (they should all be the same)
-      const nextRestock = shopStock[0]?.next_restock;
+      // Get the next restock time from any shop stock item
+      const nextRestock = shopStock[0]?.next_restock_at;
       if (!nextRestock) {
-        setTimeLeft("Loading...");
+        setTimeLeft("Unknown");
         return;
       }
 
@@ -42,6 +42,10 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
         setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
       } else {
         setTimeLeft("Restocking...");
+        // Trigger a restock check after a brief delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }
     }, 1000);
 
@@ -75,10 +79,11 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
     return stockItem?.current_stock || 0;
   };
 
-  const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Ultra Rare'];
+  // Sort seeds by rarity first, then by price within each rarity
+  const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
   const sortedSeeds = [...seeds].sort((a, b) => {
-    const aIndex = rarityOrder.indexOf(a.rarity);
-    const bIndex = rarityOrder.indexOf(b.rarity);
+    const aIndex = rarityOrder.indexOf(a.rarity.toLowerCase());
+    const bIndex = rarityOrder.indexOf(b.rarity.toLowerCase());
     if (aIndex !== bIndex) {
       return aIndex - bIndex;
     }

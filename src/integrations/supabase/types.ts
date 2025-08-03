@@ -318,12 +318,39 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      buy_seed_safe: {
+        Args: {
+          player_id_param: string
+          seed_id_param: string
+          cost_param: number
+        }
+        Returns: {
+          success: boolean
+          message: string
+        }[]
+      }
       calculate_mutation_price: {
         Args: { base_price: number; mutations: string[] }
         Returns: number
       }
       decrement_stock: {
         Args: { seed_id: string }
+        Returns: undefined
+      }
+      give_money_to_player: {
+        Args: { target_username: string; amount: number }
+        Returns: undefined
+      }
+      give_seeds_to_player: {
+        Args: {
+          target_username: string
+          seed_name: string
+          quantity_param: number
+        }
+        Returns: undefined
+      }
+      handle_shop_restock: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       leave_room: {
