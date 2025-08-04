@@ -42,10 +42,6 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
         setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
       } else {
         setTimeLeft("Restocking...");
-        // Trigger a restock check after a brief delay
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
       }
     }, 1000);
 
