@@ -22,18 +22,25 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
 
   // Update countdown timer from shop stock
   useEffect(() => {
-    if (!shopStock || shopStock.length === 0) return;
+    if (!shopStock || shopStock.length === 0) {
+      setTimeLeft("No schedule");
+      return;
+    }
 
     const interval = setInterval(() => {
-      // Get the next restock time from any shop stock item
-      const nextRestock = shopStock[0]?.next_restock_at;
-      if (!nextRestock) {
+      // Compute the earliest upcoming restock across all items
+      const times = shopStock
+        .map((item) => item.next_restock_at)
+        .filter(Boolean)
+        .map((t: string) => new Date(t).getTime());
+
+      if (!times.length) {
         setTimeLeft("Unknown");
         return;
       }
 
-      const now = new Date().getTime();
-      const target = new Date(nextRestock).getTime();
+      const target = Math.min(...times);
+      const now = Date.now();
       const difference = target - now;
 
       if (difference > 0) {
@@ -76,14 +83,28 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
   };
 
   // Sort seeds by rarity first, then by price within each rarity
-  const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
-  const sortedSeeds = [...seeds].sort((a, b) => {
-    const aIndex = rarityOrder.indexOf(a.rarity.toLowerCase());
-    const bIndex = rarityOrder.indexOf(b.rarity.toLowerCase());
-    if (aIndex !== bIndex) {
-      return aIndex - bIndex;
+  const rarityOrder = ['Common','Uncommon','Rare','Legendary','Mythical','Divine','Prismatic'];
+  const getRarityIndex = (r: string) => {
+    const exact = rarityOrder.indexOf(r as any);
+    if (exact !== -1) return exact;
+    const lower = (r || '').toLowerCase();
+    switch (lower) {
+      case 'common': return 0;
+      case 'uncommon': return 1;
+      case 'rare': return 2;
+      case 'epic': return 3; // fallback if present
+      case 'legendary': return 3;
+      case 'mythic':
+      case 'mythical': return 4;
+      case 'divine': return 5;
+      case 'prismatic': return 6;
+      default: return 999;
     }
-    // If same rarity, sort by price (ascending)
+  };
+  const sortedSeeds = [...seeds].sort((a, b) => {
+    const aIndex = getRarityIndex((a as any).rarity);
+    const bIndex = getRarityIndex((b as any).rarity);
+    if (aIndex !== bIndex) return aIndex - bIndex;
     return a.cost_sheckles - b.cost_sheckles;
   });
 
@@ -126,6 +147,7 @@ export const SeedShop = ({ seeds, shopStock, onBuySeed, playerMoney, restockTime
                           <Badge 
                             className={`${RARITY_COLORS[seed.rarity as keyof typeof RARITY_COLORS]} text-white`}
                             variant="secondary"
+                            aria-label={`${seed.rarity} rarity`}
                           >
                             {seed.rarity}
                           </Badge>

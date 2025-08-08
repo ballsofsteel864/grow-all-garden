@@ -194,26 +194,55 @@ export const useGameState = () => {
   // Load shop stock with automatic restocking
   const loadShopStock = async () => {
     try {
-      const { data, error } = await supabase
+      // 1) Ensure stock rows exist
+      let { data: stockData, error: stockError } = await supabase
         .from('shop_stock')
         .select(`
           *,
           seeds (*)
         `);
 
-      if (error) throw error;
-      
-      // Run restock function to update any stocks that need restocking
+      if (stockError) throw stockError;
+
+      if (!stockData || stockData.length === 0) {
+        // Seed initial shop_stock rows for all seeds
+        const { data: allSeeds, error: seedsErr } = await supabase
+          .from('seeds')
+          .select('id, rarity');
+        if (seedsErr) throw seedsErr;
+
+        if (allSeeds && allSeeds.length > 0) {
+          const inserts = allSeeds.map((s) => ({
+            seed_id: (s as any).id,
+            current_stock: 0,
+            max_stock: (() => {
+              const r = String((s as any).rarity || '').toLowerCase();
+              if (r === 'common') return 10;
+              if (r === 'uncommon') return 7;
+              if (r === 'rare') return 5;
+              if (r === 'legendary') return 3;
+              return 1; // mythical/divine/prismatic or unknown
+            })(),
+            min_stock: 0,
+            next_restock_at: new Date(Date.now() - 1000).toISOString(),
+            last_restock: new Date().toISOString(),
+            restock_chance: 0.0,
+          }));
+          await supabase.from('shop_stock').insert(inserts);
+        }
+      }
+
+      // 2) Run restock function to update any stocks that need restocking
       await supabase.rpc('handle_shop_restock');
-      
-      // Reload after potential restock
+
+      // 3) Reload after potential restock
       const { data: updatedData } = await supabase
         .from('shop_stock')
         .select(`
           *,
           seeds (*)
         `);
-        
+
       setShopStock(updatedData || []);
     } catch (error) {
       console.error('Error loading shop stock:', error);
@@ -418,38 +447,69 @@ export const useGameState = () => {
 
   // Trigger weather (admin only)
   const triggerWeather = async (weatherType: string, isGlobal: boolean = true) => {
-    // Admin check removed since buttons are only shown to admins
-
     try {
-      // End current weather first
+      // Normalize to backend-friendly keys for mutation RPC
+      const normalize = (t: string) => {
+        const key = t.trim().toLowerCase();
+        const map: Record<string, string> = {
+          'rain': 'rainy',
+          'tropical rain': 'rainy',
+          'chocolate rain': 'rainy',
+          'honey rain': 'rainy',
+          'green rain': 'rainy',
+          'thunderstorm': 'storm',
+          'storm': 'storm',
+          'frost': 'snow',
+          'blood moon': 'blood_moon',
+          'tornado': 'tornado',
+          'sandstorm': 'drought',
+          'night': 'night',
+          'laser': 'rainbow',
+          'volcano': 'rainbow',
+          'heatwave': 'heat',
+          'gale': 'wind',
+          'aurora borealis': 'rainbow',
+          'disco': 'rainbow',
+          'swarm': 'wind',
+          'meteor': 'rainbow',
+          'blackhole': 'rainbow',
+          'sungod': 'golden_hour',
+          'aubi zombie': 'rainbow',
+          'floating aubi': 'rainbow',
+          'chicken rain': 'rainy'
+        };
+        return map[key] || key;
+      };
+
+      // End current weather if any (ignore errors)
       await supabase
         .from('weather_events')
         .update({ is_active: false })
         .eq('is_active', true);
 
       // Start new weather (skip if clearing)
-      if (weatherType !== "Clear") {
-        const { error } = await supabase
+      if (weatherType.toLowerCase() !== 'clear') {
+        const nowIso = new Date().toISOString();
+        const { error: insertErr } = await supabase
           .from('weather_events')
           .insert({
             weather_type: weatherType,
-            duration: 300, // 5 minutes
+            duration: 300,
             is_active: true,
+            started_at: nowIso,
             triggered_by_admin: true,
             scope: isGlobal ? 'global' : 'local'
           });
+        if (insertErr) throw insertErr;
 
-        if (error) throw error;
-
-        // Trigger weather mutations on existing crops
-        await supabase.rpc('trigger_weather_mutations', { 
-          weather_type_param: weatherType 
-        });
+        // Trigger weather mutations on existing crops (best-effort)
+        const norm = normalize(weatherType);
+        const _rpc = await supabase.rpc('trigger_weather_mutations', { weather_type_param: norm });
       }
 
       toast({
-        title: "Weather Changed!",
-        description: weatherType === "Clear" ? "Weather cleared!" : `${weatherType} weather has started!`,
+        title: 'Weather Changed!',
+        description: weatherType.toLowerCase() === 'clear' ? 'Weather cleared!' : `${weatherType} weather has started!`,
       });
 
       await loadCurrentWeather();
@@ -457,9 +517,9 @@ export const useGameState = () => {
     } catch (error) {
       console.error('Error triggering weather:', error);
       toast({
-        title: "Error",
-        description: "Failed to trigger weather event",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to trigger weather event',
+        variant: 'destructive'
       });
       return false;
     }
